@@ -1,48 +1,52 @@
-import os
-import base64
-import requests
 import streamlit as st
 
-# Get secrets and remove quotes if they exist
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"].strip('"')
-GITHUB_REPO = st.secrets["GITHUB_REPO"].strip('"')
-FILE_PATH = "mydatabase.db"
-BRANCH = "main"
+def show_table1_section(cursor, conn):
+    st.header("📋 Table 1 - Main Records")
+    cursor.execute("SELECT * FROM table1")
+    rows = cursor.fetchall()
+    st.dataframe(rows)
 
-def push_database():
-    try:
-        # Read and encode the file
-        with open(FILE_PATH, "rb") as f:
-            content = f.read()
-        b64_content = base64.b64encode(content).decode("utf-8")
+    st.subheader("➕ Add Record to Table 1")
+    with st.form("form_table1"):
+        name = st.text_input("Name")
+        age = st.number_input("Age", min_value=0)
+        status = st.selectbox("Status", ["Active", "Inactive"])
+        material = st.text_input("Material")
+        quantity = st.number_input("Quantity", min_value=0)
+        price = st.number_input("Price", min_value=0.0)
+        submitted = st.form_submit_button("Add to Table 1")
 
-        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
-        headers = {
-            "Authorization": f"token {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json"
-        }
+        if submitted:
+            cursor.execute('''
+                INSERT INTO table1 (name, age, status, material, quantity, price)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (name, age, status, material, quantity, price))
+            conn.commit()
+            st.success("✅ Added to table1 (triggered table2 insert)")
 
-        # Get SHA (required if file already exists)
-        res = requests.get(url, headers=headers)
-        if res.status_code == 200:
-            sha = res.json()["sha"]
-        else:
-            sha = None
+def show_table2_section(cursor):
+    st.header("📑 Table 2 - Triggered Records")
+    cursor.execute("SELECT * FROM table2")
+    rows = cursor.fetchall()
+    st.dataframe(rows)
 
-        payload = {
-            "message": "Auto update mydatabase.db via Streamlit",
-            "content": b64_content,
-            "branch": BRANCH
-        }
-        if sha:
-            payload["sha"] = sha
+def show_table3_section(cursor, conn):
+    st.header("💰 Table 3 - Debts and Appointments")
+    cursor.execute("SELECT * FROM table3")
+    rows = cursor.fetchall()
+    st.dataframe(rows)
 
-        res = requests.put(url, headers=headers, json=payload)
+    st.subheader("➕ Add Record to Table 3")
+    with st.form("form_table3"):
+        debt = st.number_input("Debt Amount", min_value=0.0)
+        status = st.selectbox("Debt Status", ["Pending", "Paid"])
+        appointment = st.date_input("Last Appointment Date")
+        submitted = st.form_submit_button("Add to Table 3")
 
-        if res.status_code in [200, 201]:
-            st.success("✅ Database pushed successfully to GitHub!")
-        else:
-            st.error(f"❌ Push failed: {res.status_code}\n{res.json()}")
-
-    except Exception as e:
-        st.error(f"❌ Push error: {e}")
+        if submitted:
+            cursor.execute('''
+                INSERT INTO table3 (debts, status, last_appointment)
+                VALUES (?, ?, ?)
+            ''', (debt, status, str(appointment)))
+            conn.commit()
+            st.success("✅ Added to table3")
