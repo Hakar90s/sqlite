@@ -1,14 +1,23 @@
 import streamlit as st
 import sqlite3
+import pushpull  # This is your GitHub sync module
 
-# Connect to SQLite database
+# --- Sidebar GitHub Sync Buttons ---
+st.sidebar.header("🔁 GitHub Sync")
+if st.sidebar.button("⬇️ Pull DB from GitHub"):
+    pushpull.pull_database()
+
+if st.sidebar.button("⬆️ Push DB to GitHub"):
+    pushpull.push_database()
+
+# --- Database Connection ---
 conn = sqlite3.connect('mydatabase.db')
 cursor = conn.cursor()
 
 st.title("📊 Streamlit App with SQLite (3 Tables)")
 
 # -------------------------------
-# 📂 View Table 1
+# 📋 Table 1 - Main Records
 # -------------------------------
 st.header("📋 Table 1 - Main Records")
 cursor.execute("SELECT * FROM table1")
@@ -34,15 +43,15 @@ with st.form("form_table1"):
         st.success("✅ Added to table1 (and triggered insert to table2)")
 
 # -------------------------------
-# 📂 View Table 2
+# 📑 Table 2 - Triggered Data
 # -------------------------------
-st.header("📑 Table 2 - Triggered Data")
+st.header("📑 Table 2 - Triggered Data from Trigger")
 cursor.execute("SELECT * FROM table2")
 rows2 = cursor.fetchall()
 st.dataframe(rows2)
 
 # -------------------------------
-# 📂 View & Add to Table 3
+# 💰 Table 3 - Debts & Appointments
 # -------------------------------
 st.header("💰 Table 3 - Debts and Appointments")
 cursor.execute("SELECT * FROM table3")
@@ -63,5 +72,5 @@ with st.form("form_table3"):
         conn.commit()
         st.success("✅ Record added to table3")
 
-# Close connection
+# --- Close database connection ---
 conn.close()
